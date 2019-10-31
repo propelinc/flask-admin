@@ -58,6 +58,7 @@ class AmountHandler(logging.Handler):
     def __init__(self, *args):
         super(AmountHandler, self).__init__(*args)
         self.records = []
+        self.time = time.time()
 
     def emit(self, record):
         self.records.append((time.time() - self.time, record))
