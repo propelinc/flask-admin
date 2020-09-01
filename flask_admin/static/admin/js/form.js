@@ -457,6 +457,7 @@
             case 'x-editable':
                 $el.editable({
                     params: overrideXeditableParams,
+                    placement: 'left',
                     combodate: {
                         // prevent minutes from showing in 5 minute increments
                         minuteStep: 1,
