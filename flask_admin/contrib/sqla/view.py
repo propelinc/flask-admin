@@ -3,6 +3,7 @@ import warnings
 import inspect
 
 from sqlalchemy.orm.attributes import InstrumentedAttribute
+from sqlalchemy.orm.base import manager_of_class, instance_state
 from sqlalchemy.orm import joinedload, aliased
 from sqlalchemy.sql.expression import desc
 from sqlalchemy import Boolean, Table, func, or_
@@ -328,6 +329,8 @@ class ModelView(BaseModelView):
                                         menu_icon_type=menu_icon_type,
                                         menu_icon_value=menu_icon_value)
 
+        self._manager = manager_of_class(self.model)
+
         # Primary key
         self._primary_key = self.scaffold_pk()
 
@@ -569,14 +572,20 @@ class ModelView(BaseModelView):
         if self.column_searchable_list:
             self._search_fields = []
 
-            for p in self.column_searchable_list:
-                attr, joins = tools.get_field_with_path(self.model, p)
+            for name in self.column_searchable_list:
+                attr, joins = tools.get_field_with_path(self.model, name)
 
                 if not attr:
-                    raise Exception('Failed to find field for search field: %s' % p)
+                    raise Exception('Failed to find field for search field: %s' % name)
 
-                for column in tools.get_columns_for_field(attr):
+                if tools.is_hybrid_property(self.model, name):
+                    column = attr
+                    if isinstance(name, string_types):
+                        column.key = name.split('.')[-1]
                     self._search_fields.append((column, joins))
+                else:
+                    for column in tools.get_columns_for_field(attr):
+                        self._search_fields.append((column, joins))
 
         return bool(self.column_searchable_list)
 
@@ -590,10 +599,10 @@ class ModelView(BaseModelView):
                 column_labels = dict(name='Name', last_name='Last Name')
                 column_searchable_list = ('name', 'last_name')
 
-            placeholder is: "Search: Name, Last Name"
+            placeholder is: "Name, Last Name"
         """
         if not self.column_searchable_list:
-            return 'Search'
+            return None
 
         placeholders = []
 
@@ -605,7 +614,7 @@ class ModelView(BaseModelView):
                 placeholders.append(
                     self.column_labels.get(searchable, searchable))
 
-        return 'Search: %s' % u', '.join(placeholders)
+        return u', '.join(placeholders)
 
     def scaffold_filters(self, name):
         """
@@ -1102,6 +1111,20 @@ class ModelView(BaseModelView):
 
         return super(ModelView, self).handle_view_exception(exc)
 
+    def build_new_instance(self):
+        """
+            Build new instance of a model. Useful to override the Flask-Admin behavior
+            when the model has a custom __init__ method.
+        """
+        model = self._manager.new_instance()
+
+        # TODO: We need a better way to create model instances and stay compatible with
+        # SQLAlchemy __init__() behavior
+        state = instance_state(model)
+        self._manager.dispatch.init(state, [], {})
+
+        return model
+
     # Model handlers
     def create_model(self, form):
         """
@@ -1111,7 +1134,8 @@ class ModelView(BaseModelView):
                 Form instance
         """
         try:
-            model = self.model()
+            model = self.build_new_instance()
+
             form.populate_obj(model)
             self.session.add(model)
             self._on_model_change(form, model, True)
