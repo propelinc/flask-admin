@@ -1,6 +1,10 @@
 Flask-Admin
 ===========
 
+  Propel-specific functionality from this fork has been moved to propel-debugtoolbar_.
+
+.. _propel-debugtoolbar: https://github.com/propelinc/freshebt-server/tree/main/libs/debugtoolbar
+
 The project was recently moved into its own organization. Please update your
 references to *git@github.com:flask-admin/flask-admin.git*.
 
