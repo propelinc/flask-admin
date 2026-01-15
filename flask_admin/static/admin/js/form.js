@@ -457,7 +457,6 @@
             case 'x-editable':
                 $el.editable({
                     params: overrideXeditableParams,
-                    placement: 'left',
                     combodate: {
                         // prevent minutes from showing in 5 minute increments
                         minuteStep: 1,
@@ -468,7 +467,7 @@
             case 'x-editable-combodate':
                 // Fixes bootstrap4 issue where data-template breaks bs4 popover.
                 // https://github.com/flask-admin/flask-admin/issues/2022
-                var template = $el.data('template');
+                let template = $el.data('template');
                 $el.removeAttr('data-template');
                 $el.editable({
                     params: overrideXeditableParams,
@@ -493,7 +492,9 @@
                     display: function(value) {
                         // override to display text instead of ids on list view
                         var html = [];
-                        var data = $.fn.editableutils.itemsByValue(value, $el.data('source'), 'id');
+                        // temporary patch to provide bs3 & bs4 compatibility
+                        var data = $.fn.editableutils.itemsByValue(value, $el.data('source'), 'id') +
+                            $.fn.editableutils.itemsByValue(value, $el.data('source'), 'value');
 
                         if(data.length) {
                             $.each(data, function(i, v) { html.push($.fn.editableutils.escape(v.text)); });
@@ -638,6 +639,7 @@
 
     // Apply global styles for current page after page loaded
     $(function() {
+        $(document).trigger('adminFormReady');
         faForm.applyGlobalStyles(document);
     });
 })();

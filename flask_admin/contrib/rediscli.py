@@ -4,7 +4,7 @@ import warnings
 
 from flask import request
 
-from jinja2 import Markup
+from markupsafe import Markup
 
 from flask_admin.base import BaseView, expose
 from flask_admin.babel import gettext
@@ -196,7 +196,7 @@ class RedisCli(BaseView):
             AJAX API.
         """
         try:
-            cmd = request.form.get('cmd').lower()
+            cmd = request.form.get('cmd')
             if not cmd:
                 return self._error('Cli: Empty command.')
 
